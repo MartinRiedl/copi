@@ -107,7 +107,7 @@ object GLRenderer {
         val xtranslation = (tl.medianTimeInSeconds - tl.modTimeDiffSeconds - p.medianTimeInSeconds).doubleValue()/timefaktor
         
         GL11.glPushMatrix()
-        	GL11.glTranslated(xtranslation,y_trans,0.0f)
+        	GL11.glTranslated(xtranslation,y_trans,0.01f)
         	render(tl)
         GL11.glPopMatrix()
         
@@ -142,7 +142,7 @@ object GLRenderer {
         val xtranslation = (imgtime-medtime).doubleValue()/timefaktor
 
         GL11.glPushMatrix()
-        GL11.glTranslated(xtranslation-0.5,-0.5,0)
+        GL11.glTranslated(xtranslation-0.5,-0.5,0.31f)
         render(img)
         GL11.glPopMatrix()
       }       
