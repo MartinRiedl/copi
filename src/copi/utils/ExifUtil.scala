@@ -95,9 +95,14 @@ object ExifUtil {
   def readExifDate(f : File) : Option[Date] = {
     val fd = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss")
     try {
-      readExifDateAsCharSequence(f) match {
-        case Some(dateseq) => Some(fd.parse(dateseq.toString))
-        case None => None
+      readExifDateOriginalAsCharSequence(f) match {
+        case Some(dateseq) => println("DATETIMEORIGINAL:"+dateseq.toString);Some(fd.parse(dateseq.toString))
+        case None => {
+          readExifDateAsCharSequence(f) match {
+            case Some(dateseq) => println("DATETIME:"+dateseq.toString);Some(fd.parse(dateseq.toString))
+            case None => None
+          }
+        }
       }
     } catch {
       case e : Exception => None
@@ -110,10 +115,12 @@ object ExifUtil {
    */
   private def readExifDateAsCharSequence(f : File) : Option[CharSequence] = {
     try {
+      import  org.apache.sanselan.formats.tiff._
+      
       val metadata = org.apache.sanselan.Sanselan.getMetadata(f)
       
-      def dataextraction(tim : org.apache.sanselan.formats.tiff.TiffImageMetadata) = {
-        val field = tim.findField(org.apache.sanselan.formats.tiff.constants.TiffTagConstants.TIFF_TAG_DATE_TIME) 
+      def dataextraction(tim : TiffImageMetadata) = {
+        val field = tim.findField(constants.TiffTagConstants.TIFF_TAG_DATE_TIME)
         field.getStringValue.subSequence(0,19) // unterminated date-String -> therefore the subSequence call
       }
       
@@ -122,7 +129,7 @@ object ExifUtil {
         case x : org.apache.sanselan.formats.tiff.TiffImageMetadata => Some(dataextraction(x))
       	case _ => throw new Exception {
       	  println(metadata)
-      	  def unapply = "wrong type"
+      	  def unapply = "wrong metadata type"
       	}
       }
     } catch {
@@ -132,4 +139,45 @@ object ExifUtil {
       }
     }
   }
+  
+  
+   
+  /**
+   * reads the exif information of the specified file handle and returns the date field
+   * @param f file handle
+   */
+  private def readExifDateOriginalAsCharSequence(f : File) : Option[CharSequence] = {
+    try {
+      import  org.apache.sanselan.formats.tiff._
+      
+      val metadata = org.apache.sanselan.Sanselan.getMetadata(f)
+      
+      def dataextraction(tim : TiffImageMetadata) = {
+        
+        val field =   tim.findField(
+          new constants.TagInfo(
+          "DateTimeOriginal", 0x9003, 
+          constants.TiffFieldTypeConstants.FIELD_TYPE_ASCII,1, 
+          constants.TiffDirectoryConstants.EXIF_DIRECTORY_EXIF_IFD)
+        )
+        field.getStringValue.subSequence(0,19) // unterminated date-String -> therefore the subSequence call
+       
+      }
+      
+      metadata match {
+        case x : org.apache.sanselan.formats.jpeg.JpegImageMetadata => Some(dataextraction(x.getExif()))
+        case x : org.apache.sanselan.formats.tiff.TiffImageMetadata => Some(dataextraction(x))
+      	case _ => throw new Exception {
+      	  println(metadata)
+      	  def unapply = "wrong metadata type"
+      	}
+      }
+    } catch {
+      case e  : Exception => {
+        println("exif info couln't be extracted: ",e)
+        None
+      }
+    }
+  }
+      
 }
